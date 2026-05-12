@@ -1,7 +1,5 @@
 # LynxSee（灵觉空间）
 
-![LynxSee UI Preview](examples/20260512-174606.png)
-
 ![LynxSee Interaction Demo](examples/20260512-181549.gif)
 
 ## 概述
