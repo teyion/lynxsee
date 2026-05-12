@@ -1,0 +1,27 @@
+{
+  "name": "lynxsee",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LynxSee core agent framework",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "tui": "tsx src/tui.ts",
+    "tui:debug": "tsx src/tui.ts --debug",
+    "test": "vitest run",
+    "ui:install": "npm --prefix ui install",
+    "ui:dev": "npm --prefix ui run dev",
+    "ui:build": "npm --prefix ui run build",
+    "ui:dist:mac": "npm --prefix ui run dist:mac"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

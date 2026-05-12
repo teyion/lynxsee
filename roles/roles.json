@@ -1,0 +1,10 @@
+{
+  "roles": [
+    {
+      "roleDir": "roles/role_default"
+    },
+    {
+      "roleDir": "roles/role_mia"
+    }
+  ]
+}

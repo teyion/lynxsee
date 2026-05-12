@@ -1,0 +1,14 @@
+{
+  "id": "mia",
+  "label": "米娅",
+  "stateDir": "state",
+  "styles": [
+    {
+      "id": "default",
+      "label": "默认风格",
+      "actionDir": "action/default",
+      "backgroundsDir": "backgrounds/default",
+      "selectedBackgroundName": "Image 27.png"
+    }
+  ]
+}

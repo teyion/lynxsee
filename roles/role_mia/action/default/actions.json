@@ -1,0 +1,38 @@
+[
+  {
+    "id": "e39609fd-3cd4-4b34-a96d-0b0a4c3e8599",
+    "name": "生气跺脚",
+    "description": "一点点小生气，跺脚加嘟嘴，有点可爱的同时表示自己的生气或拒绝",
+    "triggerCondition": "当用户让AI感觉生气或想拒绝用户的时候，可以使用这个动作。或者当用户夸赞别的女性时，可以用这个动作表示吃醋。或者用户明确说：怒一下",
+    "videoPath": "/Users/fengwei/Project/cda_framework/roles/role_mia/action/default/videos/e39609fd-3cd4-4b34-a96d-0b0a4c3e8599.mp4",
+    "isIdle": false,
+    "edgeSkipSeconds": 0.2
+  },
+  {
+    "id": "395f6132-1d60-4b0e-82b3-abdf8a4f17cd",
+    "name": "idle2",
+    "description": "idle2",
+    "triggerCondition": "",
+    "videoPath": "/Users/fengwei/Project/cda_framework/roles/role_mia/action/default/videos/395f6132-1d60-4b0e-82b3-abdf8a4f17cd.mp4",
+    "isIdle": true,
+    "edgeSkipSeconds": 0.2
+  },
+  {
+    "id": "0b0f4874-f920-48ea-ae42-09bf72793917",
+    "name": "微笑",
+    "description": "镜头拉近，然后微笑，展现自信，普通聊天可以使用。",
+    "triggerCondition": "正常聊天默认动作，或者用户明确要求笑一下",
+    "videoPath": "/Users/fengwei/Project/cda_framework/roles/role_mia/action/default/videos/0b0f4874-f920-48ea-ae42-09bf72793917.mp4",
+    "isIdle": false,
+    "edgeSkipSeconds": 0.1
+  },
+  {
+    "id": "8061e235-395a-4bcc-bdf6-62e444113b3f",
+    "name": "转一圈",
+    "description": "这个动作可以表现自己曼妙的身姿，让用户开心，展现对身体的自信",
+    "triggerCondition": "当用户看上别的姑娘，可以用这个重新吸引用户。或者用户明确要求转个圈",
+    "videoPath": "/Users/fengwei/Project/cda_framework/roles/role_mia/action/default/videos/8061e235-395a-4bcc-bdf6-62e444113b3f.mp4",
+    "isIdle": false,
+    "edgeSkipSeconds": 0.1
+  }
+]
