@@ -1,5 +1,7 @@
 # LynxSee（灵觉空间）
 
+![LynxSee UI Preview](examples/20260512-174606.png)
+
 ## 当前实现说明
 
 本 README 以当前代码实现为准，描述默认运行时的真实架构，而不是最初的蓝图。
@@ -15,6 +17,58 @@ LynxSee 是一个以上下文模块为核心的 Agent 运行时。每个模块�
 - 使用依赖图 + 层级并发调度模块。
 - 使用 `LayeredLLMRunner` 做增量式生成，而不是只在最后调用一次主 LLM。
 - 使用 `loop` 模块在必要时重跑 `task/tools`，直到满足最终整合条件或达到最大重试次数。
+
+## 安装与运行
+
+### 依赖安装
+
+项目分为根目录运行时与 `ui/` 桌面端两部分，首次使用建议分别安装依赖：
+
+```bash
+npm install
+npm run ui:install
+```
+
+如果你直接在 `ui/` 目录操作，也可以等价执行：
+
+```bash
+cd ui
+npm install
+```
+
+### 当前常用运行方式
+
+当前项目常用的启动顺序是先编译根目录 TypeScript，再编译 UI，然后启动 UI 开发环境：
+
+```bash
+npm run build
+npm run ui:build
+npm run ui:dev
+```
+
+如果想一次性连续执行，就是你现在正在使用的这条命令链：
+
+```bash
+npm run build && npm run ui:build && npm run ui:dev
+```
+
+这套流程的含义分别是：
+
+- `npm run build`：编译根目录 `src/` 下的 TypeScript。
+- `npm run ui:build`：编译 `ui/` 下的 Electron 主进程、preload 和前端资源。
+- `npm run ui:dev`：启动 UI 开发环境，便于本地调试界面与 Electron 侧逻辑。
+
+### 其他常用命令
+
+```bash
+npm run test
+npm run tui
+npm run tui:debug
+```
+
+- `npm run test`：运行 Vitest 测试。
+- `npm run tui`：启动命令行交互模式。
+- `npm run tui:debug`：启动带调试信息的命令行交互模式。
 
 ## 当前核心原则
 
