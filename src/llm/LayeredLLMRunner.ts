@@ -129,6 +129,7 @@ export class LayeredLLMRunner {
         '',
         '## Stream Output Protocol',
         '这是最终收尾段。请直接补全自然结尾，不要输出 [stream-break]。',
+        '这段文字会直接展示给用户。请继续角色化回复，不要输出任何解释性语言、准备语或过程说明。',
       ].join('\n');
     }
     return [
@@ -136,6 +137,9 @@ export class LayeredLLMRunner {
       '',
       '## Stream Output Protocol',
       '请根据上下文补充一段流式输出 chunk。',
+      '这个 chunk 会直接展示给用户，必须从第一字开始就是面向用户的自然回复。',
+      '不要输出任何解释性语言、准备语、过渡语或自我说明。',
+      '禁止出现“我这就…/我来…/根据当前对话…/按照你的要求…/下面我…”这类开头。',
       '当这一段应当结束时，请输出 [stream-break] 作为结束标记。',
       '只输出新增补全文本，不要解释。',
     ].join('\n');

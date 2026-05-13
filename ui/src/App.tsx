@@ -2416,7 +2416,7 @@ export default function App() {
             <div className="persona-section">
               <div className="persona-section-title">DeepSeek 配置</div>
               <div className="persona-attr-val" style={{ marginBottom: '12px' }}>
-                默认读取 `~/.cda_env`。保存后会立即生效，并写回用户 home 目录下的配置文件。
+                开发模式默认读取项目根目录下的 `.env`；打包版本默认读取 `~/.cda_env`。点击“保存配置”后才会立即生效，并写回对应配置文件。
               </div>
               <div className="persona-attr-val" style={{ marginBottom: '12px', opacity: 0.82 }}>
                 当前仅支持 DeepSeek。前缀续写能力依赖 DeepSeek Beta 接口，推荐使用
@@ -2427,8 +2427,8 @@ export default function App() {
                   <button type="button" className="settings-tab active" onClick={() => { setLlmBaseURL('https://api.deepseek.com/beta'); setLlmConfigMessage('已填入 DeepSeek Beta 地址'); }}>DeepSeek</button>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  <button type="button" className={`settings-tab ${llmModel === 'deepseek-v4-flash' ? 'active' : ''}`} onClick={() => { setLlmModel('deepseek-v4-flash'); setLlmConfigMessage('已切换到 deepseek-v4-flash'); }}>V4 Flash</button>
-                  <button type="button" className={`settings-tab ${llmModel === 'deepseek-v4-pro' ? 'active' : ''}`} onClick={() => { setLlmModel('deepseek-v4-pro'); setLlmConfigMessage('已切换到 deepseek-v4-pro'); }}>V4 Pro</button>
+                  <button type="button" className={`settings-tab ${llmModel === 'deepseek-v4-flash' ? 'active' : ''}`} onClick={() => { setLlmModel('deepseek-v4-flash'); setLlmConfigMessage('已选择 deepseek-v4-flash，保存后生效'); }}>V4 Flash</button>
+                  <button type="button" className={`settings-tab ${llmModel === 'deepseek-v4-pro' ? 'active' : ''}`} onClick={() => { setLlmModel('deepseek-v4-pro'); setLlmConfigMessage('已选择 deepseek-v4-pro，保存后生效'); }}>V4 Pro</button>
                 </div>
                 <input
                   className="action-input"
@@ -2445,7 +2445,7 @@ export default function App() {
                 <input
                   className="action-input"
                   type="password"
-                  placeholder="API Key（默认读取 ~/.cda_env 中的 OPENAI_API_KEY）"
+                  placeholder="API Key（开发模式默认读项目 .env，打包版默认读 ~/.cda_env）"
                   value={llmAPIKey}
                   onChange={(e) => setLlmAPIKey(e.target.value)}
                 />

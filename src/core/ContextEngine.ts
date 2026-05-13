@@ -686,14 +686,16 @@ export class ContextEngine {
   private buildLayerGenerationPrompt(contextPrompt: string, isLastLayer: boolean): string {
     const objective = isLastLayer
       ? '请基于以上各个模块的上下文信息，进行一次最终的整合与回复。你的回答必须直接呈现给用户，请保持语气连贯自然。'
-      : '请基于以上上下文仅补全一句短语（一个短句），用于构建最终回复。';
+      : '请基于以上上下文仅补全一句短语（一个短句），用于构建最终回复。这个补全文本会直接展示给用户，必须从第一字开始就是对用户说的话。';
     return [
       '# Layered Response Generation',
       objective,
       '核心防幻觉纪律：',
       '1. 必须基于当前已加载的模块数据（如 Memory 或 Conversation）作答。',
       '2. 若某些事件在上下文中未被提及，绝对不可自行编造、猜测或承认。若被问及未记录的细节，请坦诚说明不记得或仅作礼貌回应。',
-      '只输出新增补全文本，不要重复已有前缀，不要输出解释。',
+      '3. 输出会直接展示给用户，必须直接进入角色回复，不要写任何准备语、解释语、过渡语或自我说明。',
+      '4. 禁止输出类似“我这就…/我来…/根据当前对话…/按照你的要求…/下面我…”这类过程性表达。',
+      '只输出新增补全文本，不要重复已有前缀，不要输出解释，不要描述你将要如何回答。',
       '',
       '## Context',
       contextPrompt || '(empty)',
