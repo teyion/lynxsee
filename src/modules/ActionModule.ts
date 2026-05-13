@@ -5,6 +5,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { OpenAILLMClient } from '../llm/LLMClient.js';
 import { getConfiguredActionDir, getConfiguredStateDir } from '../utils/runtimeStatePaths.js';
+import { toStoredActionVideoPath } from '../utils/actionVideoPaths.js';
 
 interface ActionItem {
   id: string;
@@ -65,7 +66,12 @@ export class ActionModule extends BaseModule {
       if (fs.existsSync(this.actionsPath)) {
         const raw = await readFile(this.actionsPath, 'utf-8');
         const allActions = JSON.parse(raw) as ActionItem[];
-        this.state.availableActions = allActions.filter((a) => !a.isIdle);
+        this.state.availableActions = allActions
+          .map((action) => ({
+            ...action,
+            videoPath: toStoredActionVideoPath(this.actionDir, action.videoPath, action.id),
+          }))
+          .filter((a) => !a.isIdle);
       }
     } catch (e) {
       this.state.availableActions = [];

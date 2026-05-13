@@ -19,6 +19,7 @@ import {
   toCatalogResponse,
   writeActiveSelection,
 } from './profileCatalog.js';
+import { resolveActionVideoPath, toStoredActionVideoPath } from '../../src/utils/actionVideoPaths.js';
 
 interface PersonaPanelData {
   personaBase: string;
@@ -82,7 +83,7 @@ export interface ActionItem {
   name: string;
   description: string;
   triggerCondition: string;
-  videoPath: string; // absolute path to video
+  videoPath: string; // stored as role-relative path, resolved at runtime when needed
   isIdle?: boolean;
   edgeSkipSeconds?: number;
 }
@@ -755,7 +756,7 @@ async function replenishIdleQueueBuffer(): Promise<void> {
   }
   const idleQueued = liveQueueState.queue.filter((item) => item.source === 'idle').length;
   if (idleQueued >= target) return;
-  const actions = await readActions();
+  const actions = await readResolvedActions();
   const idleActions = actions.filter((a) => Boolean(a.isIdle) && a.videoPath && fs.existsSync(a.videoPath));
   if (idleActions.length === 0) return;
   const need = target - idleQueued;
@@ -903,7 +904,7 @@ async function startIdleVideoStream(): Promise<string | null> {
     console.warn('[idle-stream] ffmpeg unavailable, skip live stream');
     return null;
   }
-  const actions = await readActions();
+  const actions = await readResolvedActions();
   const idleActions = actions.filter((a) => Boolean(a.isIdle) && a.videoPath && fs.existsSync(a.videoPath));
   if (idleActions.length === 0) {
     console.info('[idle-stream] no idle actions found, stop live stream');
@@ -992,7 +993,7 @@ async function startActionVideoStream(
     return null;
   }
   await ensureIdleStreamServer();
-  const actions = await readActions();
+  const actions = await readResolvedActions();
   const matched =
     (actionId ? actions.find((a) => a.id === actionId) : undefined) ??
     actions.find((a) => a.videoPath === videoPath);
@@ -1087,7 +1088,7 @@ async function stopActionVideoStream(): Promise<void> {
 
 async function prewarmActionVideoStreams(): Promise<void> {
   try {
-    const actions = await readActions();
+    const actions = await readResolvedActions();
     const normalActions = actions.filter((a) => !a.isIdle && a.videoPath && fs.existsSync(a.videoPath));
     for (const action of normalActions) {
       await startActionVideoStream(action.videoPath, action.edgeSkipSeconds, action.id).catch(() => null);
@@ -1355,22 +1356,44 @@ ipcMain.handle('agent:getMemoryMetrics', async () => {
   }
 });
 
-async function readActions(): Promise<ActionItem[]> {
+function normalizeStoredAction(item: ActionItem): ActionItem {
+  return {
+    ...item,
+    videoPath: toStoredActionVideoPath(getActionDir(), item.videoPath, item.id),
+    isIdle: Boolean(item.isIdle),
+    edgeSkipSeconds: Number.isFinite(Number(item.edgeSkipSeconds))
+      ? Math.max(0, Number(item.edgeSkipSeconds))
+      : DEFAULT_EDGE_SKIP_SECONDS,
+  };
+}
+
+function resolveActionItem(item: ActionItem): ActionItem {
+  const normalized = normalizeStoredAction(item);
+  return {
+    ...normalized,
+    videoPath: resolveActionVideoPath(getActionDir(), normalized.videoPath, normalized.id),
+  };
+}
+
+async function readStoredActions(): Promise<ActionItem[]> {
   const actionsPath = path.join(getActionDir(), 'actions.json');
   try {
     if (fs.existsSync(actionsPath)) {
       const raw = await readFile(actionsPath, 'utf-8');
       const parsed = JSON.parse(raw) as ActionItem[];
-      return parsed.map((item) => ({
-        ...item,
-        isIdle: Boolean(item.isIdle),
-        edgeSkipSeconds: Number.isFinite(Number(item.edgeSkipSeconds))
-          ? Math.max(0, Number(item.edgeSkipSeconds))
-          : DEFAULT_EDGE_SKIP_SECONDS,
-      }));
+      const normalized = parsed.map((item) => normalizeStoredAction(item));
+      if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+        await writeFile(actionsPath, JSON.stringify(normalized, null, 2), 'utf-8');
+      }
+      return normalized;
     }
   } catch {}
   return [];
+}
+
+async function readResolvedActions(): Promise<ActionItem[]> {
+  const stored = await readStoredActions();
+  return stored.map((item) => resolveActionItem(item));
 }
 
 async function writeActions(actions: ActionItem[]) {
@@ -1379,7 +1402,8 @@ async function writeActions(actions: ActionItem[]) {
     await mkdir(actionDir, { recursive: true });
   }
   const actionsPath = path.join(actionDir, 'actions.json');
-  await writeFile(actionsPath, JSON.stringify(actions, null, 2), 'utf-8');
+  const stored = actions.map((item) => normalizeStoredAction(item));
+  await writeFile(actionsPath, JSON.stringify(stored, null, 2), 'utf-8');
 }
 
 ipcMain.handle('agent:getLLMConfig', async () => {
@@ -1444,7 +1468,7 @@ ipcMain.handle('agent:saveLLMConfig', async (_event: any, baseURL: string, apiKe
 });
 
 ipcMain.handle('agent:getActions', async () => {
-  return readActions();
+  return readStoredActions();
 });
 
 ipcMain.handle('agent:startIdleVideoStream', async () => {
@@ -1460,7 +1484,8 @@ ipcMain.handle('agent:stopIdleVideoStream', async () => {
 ipcMain.handle(
   'agent:startActionVideoStream',
   async (_event: any, videoPath: string, edgeSkipSeconds?: number, actionId?: string) => {
-    return enqueueActionIntoIdleLive(videoPath, edgeSkipSeconds, actionId);
+    const resolvedVideoPath = resolveActionVideoPath(getActionDir(), videoPath, actionId);
+    return enqueueActionIntoIdleLive(resolvedVideoPath, edgeSkipSeconds, actionId);
   }
 );
 
@@ -1507,11 +1532,12 @@ ipcMain.handle('agent:pickMp4', async (event: any) => {
 
 ipcMain.handle('agent:getVideoDataUrl', async (_event: any, videoPath: string) => {
   try {
-    if (!videoPath || !fs.existsSync(videoPath)) {
+    const resolvedVideoPath = resolveActionVideoPath(getActionDir(), videoPath);
+    if (!resolvedVideoPath || !fs.existsSync(resolvedVideoPath)) {
       return null;
     }
-    const videoBuffer = await readFile(videoPath);
-    const ext = path.extname(videoPath).toLowerCase();
+    const videoBuffer = await readFile(resolvedVideoPath);
+    const ext = path.extname(resolvedVideoPath).toLowerCase();
     const mime = ext === '.mp4' ? 'video/mp4' : 'application/octet-stream';
     return `data:${mime};base64,${videoBuffer.toString('base64')}`;
   } catch {
@@ -1520,7 +1546,7 @@ ipcMain.handle('agent:getVideoDataUrl', async (_event: any, videoPath: string) =
 });
 
 ipcMain.handle('agent:addAction', async (_event: any, actionInfo: Omit<ActionItem, 'id' | 'videoPath'>, sourceVideoPath: string) => {
-  const actions = await readActions();
+  const actions = await readStoredActions();
   const id = crypto.randomUUID();
   const videoDir = path.join(getActionDir(), 'videos');
   if (!fs.existsSync(videoDir)) {
@@ -1532,7 +1558,7 @@ ipcMain.handle('agent:addAction', async (_event: any, actionInfo: Omit<ActionIte
   const newAction: ActionItem = {
     ...actionInfo,
     id,
-    videoPath: destVideoPath,
+    videoPath: toStoredActionVideoPath(getActionDir(), destVideoPath, id),
     isIdle: Boolean(actionInfo.isIdle),
     edgeSkipSeconds: Number.isFinite(Number(actionInfo.edgeSkipSeconds))
       ? Math.max(0, Number(actionInfo.edgeSkipSeconds))
@@ -1541,7 +1567,7 @@ ipcMain.handle('agent:addAction', async (_event: any, actionInfo: Omit<ActionIte
   actions.push(newAction);
   await writeActions(actions);
   await clearActionVodCacheById(newAction.id);
-  void startActionVideoStream(newAction.videoPath, newAction.edgeSkipSeconds, newAction.id);
+  void startActionVideoStream(resolveActionVideoPath(getActionDir(), newAction.videoPath, newAction.id), newAction.edgeSkipSeconds, newAction.id);
   await stopIdleVideoStream();
   return newAction;
 });
@@ -1554,7 +1580,7 @@ ipcMain.handle(
     actionInfo: Omit<ActionItem, 'id' | 'videoPath'>,
     sourceVideoPath?: string
   ) => {
-    const actions = await readActions();
+    const actions = await readStoredActions();
     const idx = actions.findIndex((a) => a.id === id);
     if (idx === -1) {
       throw new Error('动作不存在');
@@ -1569,10 +1595,11 @@ ipcMain.handle(
       }
       const newVideoPath = path.join(videoDir, `${id}.mp4`);
       await transcodeActionVideoToMp4(sourceVideoPath, newVideoPath);
-      nextVideoPath = newVideoPath;
-      if (oldAction.videoPath !== newVideoPath && fs.existsSync(oldAction.videoPath)) {
+      nextVideoPath = toStoredActionVideoPath(getActionDir(), newVideoPath, id);
+      const oldResolvedVideoPath = resolveActionVideoPath(getActionDir(), oldAction.videoPath, oldAction.id);
+      if (oldResolvedVideoPath !== newVideoPath && fs.existsSync(oldResolvedVideoPath)) {
         try {
-          await unlink(oldAction.videoPath);
+          await unlink(oldResolvedVideoPath);
         } catch {}
       }
     }
@@ -1591,20 +1618,21 @@ ipcMain.handle(
     actions[idx] = updatedAction;
     await writeActions(actions);
     await clearActionVodCacheById(updatedAction.id);
-    void startActionVideoStream(updatedAction.videoPath, updatedAction.edgeSkipSeconds, updatedAction.id);
+    void startActionVideoStream(resolveActionVideoPath(getActionDir(), updatedAction.videoPath, updatedAction.id), updatedAction.edgeSkipSeconds, updatedAction.id);
     await stopIdleVideoStream();
     return updatedAction;
   }
 );
 
 ipcMain.handle('agent:deleteAction', async (_event: any, id: string) => {
-  const actions = await readActions();
+  const actions = await readStoredActions();
   const idx = actions.findIndex(a => a.id === id);
   if (idx !== -1) {
     const action = actions[idx];
     try {
-      if (fs.existsSync(action.videoPath)) {
-        await unlink(action.videoPath);
+      const resolvedVideoPath = resolveActionVideoPath(getActionDir(), action.videoPath, action.id);
+      if (fs.existsSync(resolvedVideoPath)) {
+        await unlink(resolvedVideoPath);
       }
     } catch {}
     await clearActionVodCacheById(action.id);

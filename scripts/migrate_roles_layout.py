@@ -80,7 +80,7 @@ def rewrite_action_video_paths(action_dir: Path) -> None:
             continue
         target_video = videos_dir / f"{item_id}.mp4"
         if target_video.exists():
-            next_path = str(target_video)
+            next_path = f"videos/{item_id}.mp4"
             if item.get("videoPath") != next_path:
                 item["videoPath"] = next_path
                 changed = True

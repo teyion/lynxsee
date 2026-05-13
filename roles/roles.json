@@ -5,6 +5,9 @@
     },
     {
       "roleDir": "roles/role_mia"
+    },
+    {
+      "roleDir": "roles/role_zm"
     }
   ]
 }
